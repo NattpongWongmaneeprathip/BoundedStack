@@ -1,9 +1,7 @@
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.HashSet;
-import java.util.Set;
 /**
  * Test class for BoundedStack.
  * This class contains unit tests to verify the functionality of the BoundedStack class.
@@ -115,10 +113,11 @@ public class BoundedStackTest {
         }
         check("Create BoundedStack with num_ids exceeding limit -> throws IllegalArgumentException", threwExceedNumIdLimit);
     }
-       // --- Mutator: add ต้องรักษาลำดับและกันรายชื่อและเลขประจำตัวซ้ำ ---
+
+    // --- Mutator: add ต้องรักษาลำดับและกันรายชื่อและเลขประจำตัวซ้ำ ---
     private static void testAdd() {
         System.out.println("=== testAdd ===");
-      // adding elements to BoundedStack
+    // adding elements to BoundedStack
         BoundedStack stack = new BoundedStack();
         stack.add("Alice", "1111111111111");
         check("Add element to BoundedStack", stack.size() == 1);
@@ -143,31 +142,92 @@ public class BoundedStackTest {
         check("add(null name) -> throws IllegalArgumentException", threwNull);
 
         check("failed adds leave stack unchanged", stack.size() == 1);
-
-        // boundary: 
-        
-      //--- Mutator: remove ทั้งกรณีพบและไม่พบ ---
-
     }
-    
+
+    //--- Mutator: remove ทั้งกรณีพบและไม่พบ ---
     private static void testRemove() {
         System.out.println("=== testRemove ===");
         // Test removing elements from BoundedStack
     }
 
+    // --- Observer ต้องไม่มี side effect ---
     private static void testObservers() {
         System.out.println("=== testObservers ===");
         // Test observer methods
+        BoundedStack stack = new BoundedStack();
+        stack.add("Alice", "1111111111111");
+        check("size() returns correct value", stack.size() == 1);
+        check("contains() returns true for existing element", stack.contains("Alice", "1111111111111"));
+        check("contains() returns false for non-existing element", !stack.contains("Bob", "2222222222222"));
+        // Test that observer methods don't have side effects
+        int originalSize = stack.size();
+        stack.names();
+        stack.num_ids();
+        check("Observer methods don't have side effects", stack.size() == originalSize);
     }
 
+    // --- Producer ต้องคืนตัวใหม่ ไม่แก้ตัวเดิม ---
     private static void testProducer() {
         System.out.println("=== testProducer ===");
         // Test producer functionality
+        BoundedStack stack = new BoundedStack();
+        stack.add("Alice", "1111111111111");
+        BoundedStack shuffledStack = stack.shuffled();
+
+        check("shuffled() returns a new BoundedStack", shuffledStack != stack);
+        check("shuffled() returns a BoundedStack with same size", shuffledStack.size() == stack.size());
+        check("shuffled() returns a BoundedStack with same elements", shuffledStack.contains("Alice", "1111111111111"));
+        check("shuffled() does not modify original BoundedStack", stack.size() == 1 && stack.contains("Alice", "1111111111111"));
+        check("shuffled() returns a BoundedStack with same elements but different order", new HashSet<>(shuffledStack.names()).equals(new HashSet<>(stack.names())) && new HashSet<>(shuffledStack.num_ids()).equals(new HashSet<>(stack.num_ids())));
+        
+        Collections.sort(stack.names());
+        Collections.sort(shuffledStack.names()); 
+
+         // mutate ตัวใหม่ต้องไม่กระทบตัวเดิ
+         shuffledStack.add("Bob", "2222222222222");
+         check("mutating shuffled() does not affect original BoundedStack", !stack.contains("Bob", "2222222222222"));
+         int originalSize = stack.size();
+         check("mutating shuffled() does not affect original BoundedStack size", stack.size() == originalSize);
+
+         // boundary: shuffle เนมลิสต์ว่างต้องไม่พัง
+            BoundedStack emptyStack = new BoundedStack();
+            BoundedStack shuffledEmptyStack = emptyStack.shuffled();
+            check("shuffled() on empty BoundedStack returns a new BoundedStack", shuffledEmptyStack != emptyStack);
+            check("shuffled() on empty BoundedStack returns a BoundedStack with size 0", shuffledEmptyStack.size() == 0);
     }
 
+    // --- ทดสอบว่าไม่เกิด representation exposure ---
     private static void testExposure() {
         System.out.println("=== testExposure ===");
-        // Test exposure/encapsulation
+
+         // ขาออก: แก้ list ที่ได้จาก songs() ต้องไม่กระทบ rep
+       BoundedStack stack = new BoundedStack();
+        stack.add("Alice", "1111111111111");
+        
+        List<String> names = stack.names();
+        names.add("Bob"); // Attempt to modify the returned list
+        check("Exposure test: modifying returned list does not affect original BoundedStack", !stack.contains("Bob", "2222222222222"));
+        
+        List<String> num_ids = stack.num_ids();
+        num_ids.add("3333333333333"); // Attempt to modify the returned list
+        check("Exposure test: modifying returned list does not affect original BoundedStack", !stack.contains("Alice", "3333333333333"));
+        
+        // สองครั้งต้องเป็นคนละ object
+        List<String> names2 = stack.names();
+        check("Exposure test: names() returns a new list each time", names != names2);
+        
+        List<String> num_ids2 = stack.num_ids();
+        check("Exposure test: num_ids() returns a new list each time", num_ids != num_ids2);
+
+        // ขาเข้า: แก้ list ที่ส่งให้ constructor ต้องไม่กระทบ rep
+        List<String> inputNames = new ArrayList<>();
+        inputNames.add("Charlie");
+        List<String> inputNumIds = new ArrayList<>();
+        inputNumIds.add("4444444444444");
+        BoundedStack stack2 = new BoundedStack(inputNames, inputNumIds);
+        inputNames.add("David");
+        inputNumIds.add("5555555555555");
+        check("Exposure test: modifying input lists after construction does not affect BoundedStack", !stack2.contains("David", "5555555555555"));
     }
 }
    

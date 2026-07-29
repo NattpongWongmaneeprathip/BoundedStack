@@ -1,11 +1,12 @@
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 /**
  * 6821651183 ณัฐพงศ์ วงศ์มณีประทีป sec800 lab801
  * 6821651272 ธนกร รักธรรมวาที sec800 lab801
  */
-
-import org.w3c.dom.NameList;
-
 
 /**
  * BoundedStack is a stack with a fixed capacity. It can hold a limited number of elements, and once the capacity is reached, no more elements can be added until some are removed.
@@ -61,7 +62,6 @@ public class BoundedStack{
         assert numIdSet.size() == num_ids.size() : "Duplicate num_ids found";
     }
     
-
     /**
      * Constructs a BoundedStack and initializes the internal lists.
      */
@@ -134,35 +134,20 @@ public class BoundedStack{
     //==== observers ====
     //คำนวณรายชื่อว่าอยู่หรือไม่
     public int size() {
-        return names.size();
+        return Math.min(names.size(), num_ids.size());
     }
 
     //ตรวจสอบว่ามีชื่อนี้หรือไม่
-    public boolean contains(String name) {
-        return names.contains(name);
+    public boolean contains(String name, String numid) {
+        return names.contains(name) && num_ids.contains(numid);
     }
 
     //คืนรายชื่อทั้งหมด
     public List<String> names() {
         return new ArrayList<>(names);
     }
-
-    public BoundedStack(List<String> initial_names) {
-        if (initial_names == null) {
-            throw new IllegalArgumentException("Initial list must not be null");
-        }
-        if (initial_names.size() > MAX_NAME) {
-            throw new IllegalArgumentException("initial_names size exceeds maximum limit");
-        }
-
-        Set<String> nameSet = new HashSet<>(initial_names);
-        if (nameSet.size() != initial_names.size()) {
-            throw new IllegalArgumentException("Duplicate names found");
-        }
-
-        this.names = new ArrayList<>(initial_names);
-        this.num_ids = new ArrayList<>();
-        checkRep();
+    public List<String> num_ids() {
+        return new ArrayList<>(num_ids);
     }
 
     //==== Producer ====
@@ -172,9 +157,10 @@ public class BoundedStack{
      * ระวัง : ห้ามแก้ไขเพลย์ลิสต์เดิม (this)เด็ดขาด
      */
     public BoundedStack shuffled() {
-        List<String> copy = new ArrayList<>(names);
-        Collections.shuffle(copy);
-        return new BoundedStack(copy);
+        List<String> copyName = new ArrayList<>(names), copyNumIds = new ArrayList<>(num_ids);
+        Collections.shuffle(copyName);
+        Collections.shuffle(copyNumIds);
+        return new BoundedStack(copyName, copyNumIds);
     }
 
     @Override

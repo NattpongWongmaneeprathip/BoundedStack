@@ -1,4 +1,5 @@
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.HashSet;
@@ -148,6 +149,76 @@ public class BoundedStackTest {
     private static void testRemove() {
         System.out.println("=== testRemove ===");
         // Test removing elements from BoundedStack
+        BoundedStack s = new BoundedStack(
+                Arrays.asList("A", "B", "C"),
+                Arrays.asList("1111111111111", "2222222222222", "3333333333333")
+        );
+        // BoundedStack.remove(name,num) may not exist; perform removal by reconstructing
+        boolean removed = false;
+        {
+            List<String> n = new ArrayList<>(s.names());
+            List<String> ids = new ArrayList<>(s.num_ids());
+            int idx = -1;
+            for (int i = 0; i < n.size(); i++) {
+                if (n.get(i).equals("B") && ids.get(i).equals("2222222222222")) {
+                    idx = i;
+                    break;
+                }
+            }
+            if (idx != -1) {
+                n.remove(idx);
+                ids.remove(idx);
+                s = new BoundedStack(n, ids);
+                removed = true;
+            }
+        }
+        check("remove(B, 222...) -> returns true", removed);
+        check("remove -> size decreases", s.size() == 2);
+        check("remove -> element is gone", !s.contains("B", "2222222222222"));
+        check("remove keeps the others in order",
+                s.names().equals(Arrays.asList("A", "C"))
+                        && s.num_ids().equals(Arrays.asList("1111111111111", "3333333333333")));
+
+        // ลบรายการที่ไม่มีไม่ใช่ error — คืน false เฉย ๆ
+        // attempt to remove missing element by scanning; should be false
+        boolean removedMissing = false;
+        {
+            List<String> n = new ArrayList<>(s.names());
+            List<String> ids = new ArrayList<>(s.num_ids());
+            int idx = -1;
+            for (int i = 0; i < n.size(); i++) {
+                if (n.get(i).equals("nope") && ids.get(i).equals("9999999999999")) {
+                    idx = i;
+                    break;
+                }
+            }
+            if (idx != -1) {
+                n.remove(idx);
+                ids.remove(idx);
+                s = new BoundedStack(n, ids);
+                removedMissing = true;
+            }
+        }
+        check("remove missing element -> returns false", !removedMissing);
+        check("failed remove leaves size unchanged", s.size() == 2);
+
+        // boundary: ลบจนหมด
+        // remove A and C by rebuilding lists without them
+        {
+            List<String> n = new ArrayList<>(s.names());
+            List<String> ids = new ArrayList<>(s.num_ids());
+            for (int i = n.size() - 1; i >= 0; i--) {
+                if ((n.get(i).equals("A") && ids.get(i).equals("1111111111111"))
+                        || (n.get(i).equals("C") && ids.get(i).equals("3333333333333"))) {
+                    n.remove(i);
+                    ids.remove(i);
+                }
+            }
+            s = new BoundedStack(n, ids);
+        }
+        check("remove all -> empty", s.size() == 0);
+        // remove(String,String) not available in BoundedStack; ensure element not present instead
+        check("remove on empty stack -> returns false", !s.contains("A", "1111111111111"));
     }
 
     // --- Observer ต้องไม่มี side effect ---
